@@ -823,9 +823,21 @@ abstract class AbstractWebApplication extends AbstractApplication implements Web
 	 * @return  string  The requested URI
 	 *
 	 * @since   1.0
+	 * @throws  \InvalidArgumentException
 	 */
 	protected function detectRequestUri()
 	{
+		/**
+		 * If we've arrived here via a CLI application (which shouldn't happen in our web app) then we can use this as
+		 * an opportunity to bail out
+		 */
+		$httpHost = $this->input->server->getString('HTTP_HOST');
+
+		if ($httpHost === null)
+		{
+			throw new \InvalidArgumentException('Unable to parse the hostname from the request');
+		}
+
 		// First we need to detect the URI scheme.
 		$scheme = $this->isSslConnection() ? 'https://' : 'http://';
 
@@ -842,13 +854,13 @@ abstract class AbstractWebApplication extends AbstractApplication implements Web
 		if (!empty($phpSelf) && !empty($requestUri))
 		{
 			// The URI is built from the HTTP_HOST and REQUEST_URI environment variables in an Apache environment.
-			$uri = $scheme . $this->input->server->getString('HTTP_HOST') . $requestUri;
+			$uri = $scheme . $httpHost . $requestUri;
 		}
 		else
 		{
 			// If not in "Apache Mode" we will assume that we are in an IIS environment and proceed.
 			// IIS uses the SCRIPT_NAME variable instead of a REQUEST_URI variable... thanks, MS
-			$uri       = $scheme . $this->input->server->getString('HTTP_HOST') . $this->input->server->getString('SCRIPT_NAME');
+			$uri       = $scheme . $httpHost . $this->input->server->getString('SCRIPT_NAME');
 			$queryHost = $this->input->server->getString('QUERY_STRING', '');
 
 			// If the QUERY_STRING variable exists append it to the URI string.
